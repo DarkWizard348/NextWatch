@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NextWatch - Simple Cards</title>
+
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background:#0d0d0d;
+    color:#fff;
+    margin:0;
+    text-align:center;
+  }
+
+  header {
+    padding:18px;
+    background:#141414;
+    border-bottom:1px solid #2c2c2c;
+    text-align:left;
+  }
+  .logo {
+    color:#03e9f4;
+    font-size:22px;
+    font-weight:700;
+    margin-left:20px;
+  }
+
+  .container {
+    max-width:900px;
+    margin:40px auto;
+    padding:0 16px;
+  }
+
+  input[type="text"], input[type="number"] {
+    width:60%;
+    padding:12px;
+    border-radius:8px;
+    border:none;
+    font-size:16px;
+    margin:8px 0;
+  }
+
+  button {
+    padding:10px 16px;
+    border-radius:8px;
+    border:none;
+    background:#03e9f4;
+    color:#000;
+    font-weight:700;
+    cursor:pointer;
+  }
+
+  .result-box {
+    margin-top:24px;
+    display:none;
+    background:#181818;
+    padding:16px;
+    border-radius:12px;
+    text-align:left;
+  }
+
+  .card {
+    display:flex;
+    gap:12px;
+    background:#222;
+    padding:10px;
+    border-radius:8px;
+    align-items:center;
+    margin-bottom:12px;
+  }
+
+  .thumb {
+    width:180px;
+    height:100px;
+    object-fit:cover;
+    border-radius:6px;
+    flex-shrink:0;
+  }
+
+  .info h3 {
+    margin:0 0 8px 0;
+    font-size:16px;
+    line-height:1.2;
+  }
+
+  .info a {
+    color:#03e9f4;
+    word-break:break-all;
+  }
+
+  #loading {
+    color:#03e9f4;
+    display:none;
+    margin-top:12px;
+  }
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="logo">NextWatch</div>
+</header>
+
+<div class="container">
+
+  <h2 style="color:#ffffff; margin-bottom:20px; font-weight:500;">
+    ✨ Instantly Find What Comes Next
+  </h2>
+
+  <p style="font-size:18px">Paste previous vlog URL and number of next videos (1–15)</p>
+
+  <input id="videoUrl" type="text" placeholder="Paste previous YouTube URL" />
+  <br />
+  <input id="count" type="number" min="1" max="15" placeholder="How many next videos?" />
+  <br /><br />
+
+  <button id="findBtn" onclick="getNextVlogs()">Find Next Videos</button>
+  <div id="loading">⏳ Finding next videos...</div>
+
+  <div id="result" class="result-box"></div>
+</div>
+
+<script>
+const API = "http://localhost:8000";  // FastAPI backend
+
+async function getNextVlogs() {
+  const url = document.getElementById("videoUrl").value.trim();
+  const count = parseInt(document.getElementById("count").value);
+  const resultBox = document.getElementById("result");
+  const loading = document.getElementById("loading");
+  const btn = document.getElementById("findBtn");
+
+  if (!url) return alert("Please paste a YouTube URL!");
+  if (!count || count < 1 || count > 15) return alert("Count must be 1–15");
+
+  resultBox.style.display = "none";
+  loading.style.display = "block";
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(`${API}/nextvideos`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ url, count })
+    });
+
+    const data = await res.json();
+    loading.style.display = "none";
+    btn.disabled = false;
+
+    if (!data.videos || data.videos.length === 0) {
+      resultBox.innerHTML = `<p style="padding:10px">No next videos found.</p>`;
+      resultBox.style.display = "block";
+      return;
+    }
+
+    let html = `
+      <h2 style="color:#03e9f4; margin:0 0 12px 0;">
+        Channel: ${escapeHtml(data.channel || "")}
+      </h2><div style="height:8px"></div>
+    `;
+
+    data.videos.forEach(v => {
+      const thumb = v.thumbnail || "";
+      const title = escapeHtml(v.title || "No title");
+      const link = v.url || "#";
+
+      html += `
+        <div class="card">
+          <img class="thumb" src="${thumb}" alt="thumb" />
+          <div class="info">
+            <h3>${title}</h3>
+            <a href="${link}" target="_blank">${link}</a>
+          </div>
+        </div>
+      `;
+    });
+
+    resultBox.innerHTML = html;
+    resultBox.style.display = "block";
+
+  } catch (err) {
+    loading.style.display = "none";
+    btn.disabled = false;
+    resultBox.innerHTML = `<p style="padding:10px; color:#ff6b6b">
+      Server error. Check backend console.
+    </p>`;
+    resultBox.style.display = "block";
+    console.error(err);
+  }
+}
+
+function escapeHtml(text) {
+  return text.replace(/[&<>"]/g, c => ({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;'
+  }[c]));
+}
+</script>
+
+</body>
+</html>
+
+
+
+

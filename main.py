@@ -9,21 +9,27 @@ from googleapiclient.discovery import build
 from urllib.parse import urlparse, parse_qs
 from dotenv import load_dotenv
 
-# Load API Key
+# Load environment variables
 load_dotenv()
 API_KEY = os.getenv("YOUTUBE_API_KEY")
+
 if not API_KEY:
     raise Exception("YOUTUBE_API_KEY not found in environment")
 
 app = FastAPI(title="NextWatch API")
 
-# Frontend setup
+# Templates + Static
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# Home route (FIXED)
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context={}
+    )
 
 # CORS
 app.add_middleware(
@@ -41,9 +47,9 @@ youtube = build("youtube", "v3", developerKey=API_KEY)
 class VideoRequest(BaseModel):
     url: str
     count: int = 1
-    direction: str = "next"   # "next" or "previous"
+    direction: str = "next"  # next or previous
 
-# Helpers
+# Extract video ID
 def extract_video_id(url: str) -> str:
     parsed = urlparse(url)
     query = parse_qs(parsed.query)
@@ -56,6 +62,7 @@ def extract_video_id(url: str) -> str:
 
     raise HTTPException(status_code=400, detail="Invalid YouTube URL")
 
+# Get video snippet
 def get_video_snippet(video_id: str):
     res = youtube.videos().list(
         part="snippet",
@@ -68,6 +75,7 @@ def get_video_snippet(video_id: str):
 
     return items[0]["snippet"]
 
+# Get uploads playlist
 def get_uploads_playlist_id(channel_id: str) -> str:
     res = youtube.channels().list(
         part="contentDetails",
@@ -80,6 +88,7 @@ def get_uploads_playlist_id(channel_id: str) -> str:
 
     return items[0]["contentDetails"]["relatedPlaylists"]["uploads"]
 
+# Get all uploads
 def get_all_uploads(playlist_id: str):
     videos = []
     token = None
@@ -98,10 +107,9 @@ def get_all_uploads(playlist_id: str):
         if not token:
             break
 
-    # oldest → newest
-    return videos[::-1]
+    return videos[::-1]  # oldest → newest
 
-# MAIN ENDPOINT (handles BOTH next + previous)
+# MAIN ENDPOINT
 @app.post("/videos")
 def get_videos(data: VideoRequest):
 
@@ -113,7 +121,7 @@ def get_videos(data: VideoRequest):
     if direction not in ["next", "previous"]:
         raise HTTPException(status_code=400, detail="Direction must be 'next' or 'previous'")
 
-    # Get current video info
+    # Extract video
     video_id = extract_video_id(data.url)
     snippet = get_video_snippet(video_id)
 
@@ -124,7 +132,7 @@ def get_videos(data: VideoRequest):
     playlist_id = get_uploads_playlist_id(channel_id)
     uploads = get_all_uploads(playlist_id)
 
-    # Find current video index
+    # Find index
     index = next(
         (i for i, item in enumerate(uploads)
          if item["contentDetails"]["videoId"] == video_id),
@@ -137,8 +145,6 @@ def get_videos(data: VideoRequest):
     results = []
 
     for i in range(1, data.count + 1):
-
-        # KEY LOGIC (this is the feature)
         target_index = index + i if direction == "next" else index - i
 
         if 0 <= target_index < len(uploads):

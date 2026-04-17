@@ -1,213 +1,320 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>NextWatch - Simple Cards</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NextWatch</title>
 
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    background:#0d0d0d;
-    color:#fff;
-    margin:0;
-    text-align:center;
-  }
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0d0d0d;
+      color: #fff;
+      margin: 0;
+      text-align: center;
+    }
 
-  header {
-    padding:18px;
-    background:#141414;
-    border-bottom:1px solid #2c2c2c;
-    text-align:left;
-  }
-  .logo {
-    color:#03e9f4;
-    font-size:22px;
-    font-weight:700;
-    margin-left:20px;
-  }
+    header {
+      padding: 18px;
+      background: #141414;
+      border-bottom: 1px solid #2c2c2c;
+      text-align: left;
+    }
 
-  .container {
-    max-width:900px;
-    margin:40px auto;
-    padding:0 16px;
-  }
+    .logo {
+      color: #03e9f4;
+      font-size: 22px;
+      font-weight: 700;
+      margin-left: 20px;
+    }
 
-  input[type="text"], input[type="number"] {
-    width:60%;
-    padding:12px;
-    border-radius:8px;
-    border:none;
-    font-size:16px;
-    margin:8px 0;
-  }
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 16px;
+    }
 
-  button {
-    padding:10px 16px;
-    border-radius:8px;
-    border:none;
-    background:#03e9f4;
-    color:#000;
-    font-weight:700;
-    cursor:pointer;
-  }
+    input[type="text"],
+    input[type="number"] {
+      width: 60%;
+      padding: 12px;
+      border-radius: 8px;
+      border: none;
+      font-size: 16px;
+      margin: 8px 0;
+    }
 
-  .result-box {
-    margin-top:24px;
-    display:none;
-    background:#181818;
-    padding:16px;
-    border-radius:12px;
-    text-align:left;
-  }
+    .toggle-wrap {
+      margin: 20px 0;
+    }
 
-  .card {
-    display:flex;
-    gap:12px;
-    background:#222;
-    padding:10px;
-    border-radius:8px;
-    align-items:center;
-    margin-bottom:12px;
-  }
+    .toggle-btn {
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: none;
+      font-weight: 700;
+      cursor: pointer;
+      margin: 0 6px;
+      min-width: 180px;
+    }
 
-  .thumb {
-    width:180px;
-    height:100px;
-    object-fit:cover;
-    border-radius:6px;
-    flex-shrink:0;
-  }
+    .toggle-inactive {
+      background: #222;
+      color: #fff;
+    }
 
-  .info h3 {
-    margin:0 0 8px 0;
-    font-size:16px;
-    line-height:1.2;
-  }
+    .toggle-active {
+      background: #03e9f4;
+      color: #000;
+    }
 
-  .info a {
-    color:#03e9f4;
-    word-break:break-all;
-  }
+    button.main-btn {
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: none;
+      background: #03e9f4;
+      color: #000;
+      font-weight: 700;
+      cursor: pointer;
+    }
 
-  #loading {
-    color:#03e9f4;
-    display:none;
-    margin-top:12px;
-  }
-</style>
+    .result-box {
+      margin-top: 24px;
+      display: none;
+      background: #181818;
+      padding: 16px;
+      border-radius: 12px;
+      text-align: left;
+    }
+
+    .card {
+      display: flex;
+      gap: 12px;
+      background: #222;
+      padding: 10px;
+      border-radius: 8px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .thumb {
+      width: 180px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+
+    .info h3 {
+      margin: 0 0 8px 0;
+      font-size: 16px;
+      line-height: 1.2;
+    }
+
+    .info a {
+      color: #03e9f4;
+      word-break: break-all;
+    }
+
+    #loading {
+      color: #03e9f4;
+      display: none;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 768px) {
+      input[type="text"],
+      input[type="number"] {
+        width: 90%;
+      }
+
+      .toggle-btn {
+        width: 90%;
+        margin: 6px 0;
+      }
+
+      .card {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .thumb {
+        width: 100%;
+        height: auto;
+      }
+    }
+  </style>
 </head>
 
 <body>
+  <header>
+    <div class="logo">NextWatch</div>
+  </header>
 
-<header>
-  <div class="logo">NextWatch</div>
-</header>
+  <div class="container">
+    <h2 style="color:#ffffff; margin-bottom:20px; font-weight:500;">
+      ✨ Instantly Find Videos Around Any Upload
+    </h2>
 
-<div class="container">
+    <p style="font-size:18px;">
+      Paste a YouTube video URL and choose how many videos you want
+    </p>
 
-  <h2 style="color:#ffffff; margin-bottom:20px; font-weight:500;">
-    ✨ Instantly Find What Comes Next
-  </h2>
+    <input id="videoUrl" type="text" placeholder="Paste a YouTube video URL" />
+    <br />
+    <input id="count" type="number" min="1" max="15" placeholder="How many videos? (1–15)" />
+    <br />
 
-  <p style="font-size:18px">Paste previous vlog URL and number of next videos (1–15)</p>
+    <div class="toggle-wrap">
+      <button id="prevBtn" class="toggle-btn toggle-inactive" onclick="setMode('previous')">
+        ◀ Previous Videos
+      </button>
 
-  <input id="videoUrl" type="text" placeholder="Paste previous YouTube URL" />
-  <br />
-  <input id="count" type="number" min="1" max="15" placeholder="How many next videos?" />
-  <br /><br />
+      <button id="nextBtn" class="toggle-btn toggle-active" onclick="setMode('next')">
+        Next Videos ▶
+      </button>
+    </div>
 
-  <button id="findBtn" onclick="getNextVlogs()">Find Next Videos</button>
-  <div id="loading">⏳ Finding next videos...</div>
+    <button id="findBtn" class="main-btn" onclick="getVideos()">Find Next Videos</button>
 
-  <div id="result" class="result-box"></div>
-</div>
+    <div id="loading">⏳ Finding next videos...</div>
 
-<script>
-const API = "https://nextwatch-sjdd.onrender.com";  // <-- FIXED, your backend URL
+    <div id="result" class="result-box"></div>
+  </div>
 
-async function getNextVlogs() {
-  const url = document.getElementById("videoUrl").value.trim();
-  const count = parseInt(document.getElementById("count").value);
-  const resultBox = document.getElementById("result");
-  const loading = document.getElementById("loading");
-  const btn = document.getElementById("findBtn");
+  <script>
+    const API = "https://nextwatch-sjdd.onrender.com";
+    let mode = "next";
 
-  if (!url) return alert("Please paste a YouTube URL!");
-  if (!count || count < 1 || count > 15) return alert("Count must be 1–15");
+    function setMode(selected) {
+      mode = selected;
 
-  resultBox.style.display = "none";
-  loading.style.display = "block";
-  btn.disabled = true;
+      const prevBtn = document.getElementById("prevBtn");
+      const nextBtn = document.getElementById("nextBtn");
+      const findBtn = document.getElementById("findBtn");
+      const loading = document.getElementById("loading");
 
-  try {
-    const res = await fetch(`${API}/nextvideos`, {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ url, count })
-    });
+      if (mode === "previous") {
+        prevBtn.classList.remove("toggle-inactive");
+        prevBtn.classList.add("toggle-active");
 
-    const data = await res.json();
-    loading.style.display = "none";
-    btn.disabled = false;
+        nextBtn.classList.remove("toggle-active");
+        nextBtn.classList.add("toggle-inactive");
 
-    if (!data.videos || data.videos.length === 0) {
-      resultBox.innerHTML = `<p style="padding:10px">No next videos found.</p>`;
-      resultBox.style.display = "block";
-      return;
+        findBtn.innerText = "Find Previous Videos";
+        loading.innerText = "⏳ Finding previous videos...";
+      } else {
+        nextBtn.classList.remove("toggle-inactive");
+        nextBtn.classList.add("toggle-active");
+
+        prevBtn.classList.remove("toggle-active");
+        prevBtn.classList.add("toggle-inactive");
+
+        findBtn.innerText = "Find Next Videos";
+        loading.innerText = "⏳ Finding next videos...";
+      }
     }
 
-    let html = `
-      <h2 style="color:#03e9f4; margin:0 0 12px 0;">
-        Channel: ${escapeHtml(data.channel || "")}
-      </h2><div style="height:8px"></div>
-    `;
+    async function getVideos() {
+      const url = document.getElementById("videoUrl").value.trim();
+      const count = parseInt(document.getElementById("count").value);
+      const resultBox = document.getElementById("result");
+      const loading = document.getElementById("loading");
+      const btn = document.getElementById("findBtn");
 
-    data.videos.forEach(v => {
-      const thumb = v.thumbnail || "";
-      const title = escapeHtml(v.title || "No title");
-      const link = v.url || "#";
+      if (!url) {
+        alert("Please paste a YouTube URL!");
+        return;
+      }
 
-      html += `
-        <div class="card">
-          <img class="thumb" src="${thumb}" alt="thumb" />
-          <div class="info">
-            <h3>${title}</h3>
-            <a href="${link}" target="_blank">${link}</a>
-          </div>
-        </div>
-      `;
-    });
+      if (!count || count < 1 || count > 15) {
+        alert("Count must be between 1 and 15");
+        return;
+      }
 
-    resultBox.innerHTML = html;
-    resultBox.style.display = "block";
+      resultBox.style.display = "none";
+      loading.style.display = "block";
+      btn.disabled = true;
 
-  } catch (err) {
-    loading.style.display = "none";
-    btn.disabled = false;
-    resultBox.innerHTML = `<p style="padding:10px; color:#ff6b6b">
-      Server error. Check backend console.
-    </p>`;
-    resultBox.style.display = "block";
-    console.error(err);
-  }
-}
+      try {
+        const res = await fetch(`${API}/videos`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url, count, direction: mode })
+        });
 
-function escapeHtml(text) {
-  return text.replace(/[&<>"]/g, c => ({
-    '&':'&amp;',
-    '<':'&lt;',
-    '>':'&gt;',
-    '"':'&quot;'
-  }[c]));
-}
-</script>
+        const data = await res.json();
 
+        loading.style.display = "none";
+        btn.disabled = false;
+
+        if (!res.ok) {
+          resultBox.innerHTML = `
+            <p style="padding:10px; color:#ff6b6b;">
+              ${escapeHtml(data.detail || "Something went wrong.")}
+            </p>
+          `;
+          resultBox.style.display = "block";
+          return;
+        }
+
+        if (!data.videos || data.videos.length === 0) {
+          resultBox.innerHTML = `
+            <p style="padding:10px;">
+              No ${mode} videos found.
+            </p>
+          `;
+          resultBox.style.display = "block";
+          return;
+        }
+
+        let html = `
+          <h2 style="color:#03e9f4; margin:0 0 12px 0;">
+            Channel: ${escapeHtml(data.channel || "")}
+          </h2>
+          <div style="height:8px"></div>
+        `;
+
+        data.videos.forEach(v => {
+          const thumb = v.thumbnail || "";
+          const title = escapeHtml(v.title || "No title");
+          const link = v.url || "#";
+
+          html += `
+            <div class="card">
+              <img class="thumb" src="${thumb}" alt="Thumbnail" />
+              <div class="info">
+                <h3>${title}</h3>
+                <a href="${link}" target="_blank">${link}</a>
+              </div>
+            </div>
+          `;
+        });
+
+        resultBox.innerHTML = html;
+        resultBox.style.display = "block";
+
+      } catch (err) {
+        loading.style.display = "none";
+        btn.disabled = false;
+        resultBox.innerHTML = `
+          <p style="padding:10px; color:#ff6b6b;">
+            Server error. Check backend console.
+          </p>
+        `;
+        resultBox.style.display = "block";
+        console.error(err);
+      }
+    }
+
+    function escapeHtml(text) {
+      return String(text).replace(/[&<>"]/g, c => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;"
+      }[c]));
+    }
+  </script>
 </body>
 </html>
-
-
-
-
-
-

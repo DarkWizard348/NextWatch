@@ -9,23 +9,17 @@ from googleapiclient.discovery import build
 from urllib.parse import urlparse, parse_qs
 from dotenv import load_dotenv
 
-# Load API Key from .env
+# Load API Key
 load_dotenv()
 API_KEY = os.getenv("YOUTUBE_API_KEY")
 if not API_KEY:
     raise Exception("YOUTUBE_API_KEY not found in environment")
 
-app = FastAPI(title="Next Vlog Finder API")
+app = FastAPI(title="NextWatch API")
 
-# FRONTEND SUPPORT
-templates_dir = "templates"
-templates = Jinja2Templates(directory=templates_dir)
+# Frontend setup
+templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
-# Safety check for index.html
-index_path = os.path.join(templates_dir, "index.html")
-if not os.path.exists(index_path):
-    print(f"Warning: index.html not found in {templates_dir} folder! Server will still run.")
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -40,39 +34,56 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# YouTube API setup
+# YouTube API
 youtube = build("youtube", "v3", developerKey=API_KEY)
 
+# Request model
 class VideoRequest(BaseModel):
     url: str
     count: int = 1
+    direction: str = "next"   # "next" or "previous"
 
+# Helpers
 def extract_video_id(url: str) -> str:
     parsed = urlparse(url)
     query = parse_qs(parsed.query)
+
     if "v" in query:
         return query["v"][0]
+
     if "youtu.be" in parsed.netloc:
         return parsed.path.lstrip("/")
-    raise HTTPException(400, "Invalid YouTube URL")
+
+    raise HTTPException(status_code=400, detail="Invalid YouTube URL")
 
 def get_video_snippet(video_id: str):
-    res = youtube.videos().list(part="snippet,contentDetails,statistics", id=video_id).execute()
+    res = youtube.videos().list(
+        part="snippet",
+        id=video_id
+    ).execute()
+
     items = res.get("items", [])
     if not items:
-        raise HTTPException(404, "Video not found")
+        raise HTTPException(status_code=404, detail="Video not found")
+
     return items[0]["snippet"]
 
 def get_uploads_playlist_id(channel_id: str) -> str:
-    res = youtube.channels().list(part="contentDetails", id=channel_id).execute()
+    res = youtube.channels().list(
+        part="contentDetails",
+        id=channel_id
+    ).execute()
+
     items = res.get("items", [])
     if not items:
-        raise HTTPException(404, "Channel not found")
+        raise HTTPException(status_code=404, detail="Channel not found")
+
     return items[0]["contentDetails"]["relatedPlaylists"]["uploads"]
 
 def get_all_uploads(playlist_id: str):
     videos = []
     token = None
+
     while True:
         res = youtube.playlistItems().list(
             part="contentDetails",
@@ -83,44 +94,71 @@ def get_all_uploads(playlist_id: str):
 
         videos.extend(res.get("items", []))
         token = res.get("nextPageToken")
+
         if not token:
             break
 
-    return videos[::-1]  # oldest → newest
+    # oldest → newest
+    return videos[::-1]
 
-@app.post("/nextvideos")
-def next_videos(data: VideoRequest):
+# MAIN ENDPOINT (handles BOTH next + previous)
+@app.post("/videos")
+def get_videos(data: VideoRequest):
+
     if data.count < 1 or data.count > 15:
-        raise HTTPException(400, "Count must be between 1 and 15")
+        raise HTTPException(status_code=400, detail="Count must be between 1 and 15")
 
-    current_video = extract_video_id(data.url)
-    current_snippet = get_video_snippet(current_video)
-    channel_name = current_snippet.get("channelTitle", "")
-    channel_id = current_snippet.get("channelId")
+    direction = data.direction.lower().strip()
 
+    if direction not in ["next", "previous"]:
+        raise HTTPException(status_code=400, detail="Direction must be 'next' or 'previous'")
+
+    # Get current video info
+    video_id = extract_video_id(data.url)
+    snippet = get_video_snippet(video_id)
+
+    channel_name = snippet.get("channelTitle", "")
+    channel_id = snippet.get("channelId")
+
+    # Get uploads
     playlist_id = get_uploads_playlist_id(channel_id)
     uploads = get_all_uploads(playlist_id)
 
-    results = []
+    # Find current video index
     index = next(
-        (i for i, item in enumerate(uploads) if item["contentDetails"]["videoId"] == current_video),
+        (i for i, item in enumerate(uploads)
+         if item["contentDetails"]["videoId"] == video_id),
         None
     )
 
     if index is None:
-        return {"message": "Video not found in uploads"}
+        return {"channel": channel_name, "videos": []}
 
-    for j in range(1, data.count + 1):
-        if index + j < len(uploads):
-            vid = uploads[index + j]["contentDetails"]["videoId"]
-            info = youtube.videos().list(part="snippet", id=vid).execute()
+    results = []
+
+    for i in range(1, data.count + 1):
+
+        # KEY LOGIC (this is the feature)
+        target_index = index + i if direction == "next" else index - i
+
+        if 0 <= target_index < len(uploads):
+            vid = uploads[target_index]["contentDetails"]["videoId"]
+
+            info = youtube.videos().list(
+                part="snippet",
+                id=vid
+            ).execute()
+
             items = info.get("items", [])
             if not items:
                 continue
 
             s = items[0]["snippet"]
-            thumb = s.get("thumbnails", {}).get("medium", {}).get("url") or \
-                    s.get("thumbnails", {}).get("default", {}).get("url", "")
+
+            thumb = (
+                s.get("thumbnails", {}).get("medium", {}).get("url")
+                or s.get("thumbnails", {}).get("default", {}).get("url", "")
+            )
 
             results.append({
                 "url": f"https://www.youtube.com/watch?v={vid}",
@@ -132,9 +170,6 @@ def next_videos(data: VideoRequest):
 
     return {
         "channel": channel_name,
+        "direction": direction,
         "videos": results
     }
-
-
-
-
